@@ -9,19 +9,19 @@ import re
 from urllib.parse import urlencode
 from pprint import pprint
 
-class BearerAuth(requests.auth.AuthBase):
+def main():
 
-  def __init__(self, token):
-    self.token = token
+  domain = 'https://indico.cern.ch'
+  
+  api_key, api_secret = [x.replace('\n', '') for x in open('api.secret', 'r').readlines()]
+  
+  events = get_events_from_category('3285', '2024-02-01', '2024-02-01', domain, api_key, api_secret)
 
-  def __call__(self, r):
-    r.headers["authorization"] = "Bearer " + self.token
-    return r
-
-
-def str_parse(*args):
- 
-  return '_'.join([re.sub('[^0-9a-zA-Z]+', '-', x.replace('.pdf', '')) if x != None else 'NaN' for x in args])
+  for event in events:
+  
+    material = get_material_from_event(event, domain, api_key, api_secret)
+    
+    download_material(material, domain, api_key, api_secret)
 
 
 def build_indico_request(path, params, api_key=None, secret_key=None):
@@ -41,80 +41,85 @@ def build_indico_request(path, params, api_key=None, secret_key=None):
   return '%s?%s' % (path, urlencode(items))
 
 
-def get_events_from_category(category_id, date_from, date_to, api_token):
-  
-  events = {}
-  
-  url = 'https://indico.cern.ch/export/categ/' + category_id +'.json?from=' + date_from + '&to=' + date_to
+def compose_name(*args):
+ 
+  return '_'.join([re.sub('[^0-9a-zA-Z]+', '-', x.replace('.pdf', '')) if x != None else 'NaN' for x in args]) + '.pdf'
 
-  response = requests.get(url, auth=BearerAuth(api_token))
+
+def get_events_from_category(category_id, date_from, date_to, domain, api_key, api_secret):
+  
+  events = []
+  
+  path = '/export/categ/{}.json'.format(category_id)
+
+  url = domain + build_indico_request(path, {'from': date_from, 'to': date_to}, api_key, api_secret)
+
+  response = requests.get(url)
 
   if response.status_code != 200:
     print('WARNING: [get_events_from_category] status_code', response.status_code, ' != 200 for category_id', category_id)
-    return {}
+    return []
 
   data = json.loads(response.content.decode('utf-8'))
 
   if len(data['results']) == 0:
     print('WARNING: [get_events_from_category] number of results == 0 for category_id', category_id)
-    return {}
+    return []
  
   for evt in data['results']:
-    events[evt['id']] = {'title': evt['title'], 'date': evt['startDate']['date']}
+    events.append({'id': evt['id'], 'title': evt['title'], 'date': evt['startDate']['date']})
   
   return events
 
 
-def get_material_from_event(event_id, api_token):
+def get_material_from_event(event, domain, api_key, api_secret):
   
-  material = {}
+  material = []
 
-  url = 'https://indico.cern.ch/export/event/' + event_id + '.json?detail=subcontributions'
+  path = '/export/event/{}.json'.format(event['id'])
 
-  response = requests.get(url, auth=BearerAuth(api_token))
+  url = domain + build_indico_request(path, {'detail': 'subcontributions'}, api_key, api_secret)
+
+  response = requests.get(url)
 
   if response.status_code != 200:
-    print('WARNING:', response.status_code, ' [get_material_from_event] status_code != 200 for event_id', event_id)
-    return {}
+    print('WARNING:', response.status_code, ' [get_material_from_event] status_code != 200 for event', event['id'])
+    return []
 
   data = json.loads(response.content.decode('utf-8'))
 
   if len(data['results']) != 1:
-    print('WARNING: [get_material_from_event] number of results != 1 for event_id', event_id)
-    return {}
+    print('WARNING: [get_material_from_event] number of results != 1 for event', event['id'])
+    return []
 
   for con in data['results'][0]['contributions']:
 
     for fol in con['folders']:
       for att in fol['attachments']:
         if att['download_url'].endswith('.pdf'):
-          material[str_parse(con['title'], att['title'])] = {'evt': event_id, 'con': con['id'], 'mat': att['id']}
+          material.append({'name': compose_name(event['date'], event['title'], con['title'], att['title']), 'evt': event['id'], 'con': con['id'], 'mat': att['id']})
       
     for subcon in con['subContributions']:
 
       for mat in subcon['material']:
         if mat['download_url'].endswith('.pdf'):
-          material[str_parse(con['title'], subcon['title'], mat['title'])] = {'evt': event_id, 'con': con['id'], 'mat': mat['id']}
+          material.append({'name': compose_name(event['date'], event['title'], con['title'], subcon['title'], mat['title']), 'evt': event['id'], 'con': con['id'], 'mat': mat['id']})
 
       for subfol in subcon['folders']:
         for subatt in subfol['attachments']:
           if subatt['download_url'].endswith('.pdf'):
-            material[str_parse(con['title'], subcon['title'], subatt['title'])] = {'evt': event_id, 'con': con['id'], 'mat': subatt['id']}
+            material.append({'name': compose_name(event['date'], event['title'], con['title'], subcon['title'], subatt['title']), 'evt': event['id'], 'con': con['id'], 'mat': subatt['id']})
   
   return material
 
 
-def download_material(material, api_key, api_secret):
-  
-  domain = 'https://indico.cern.ch'
+def download_material(material, domain, api_key, api_secret):
 
-  for name in material:
+  for mat in material:
     
-    path = '/export/event/{}/session/0/contrib/{}/material/slides/{}.bin'.format(material[name]['evt'], material[name]['con'], material[name]['mat'])
+    path = '/export/event/{}/session/0/contrib/{}/material/slides/{}.bin'.format(mat['evt'], mat['con'], mat['mat'])
 
     url = domain + build_indico_request(path, {}, api_key, api_secret)
-
-    print(url)
 
     response = requests.get(url)
 
@@ -122,24 +127,9 @@ def download_material(material, api_key, api_secret):
       print('WARNING: [download_material] status_code', response.status_code, '!= 200 for url', url)
       return None
     
-    open(name + '.pdf', 'wb').write(response.content)
+    print('downloading:', mat['name'])
+    open(mat['name'], 'wb').write(response.content)
 
 
-api_token, api_key, api_secret = [x.replace('\n', '') for x in open('indico_api.secret', 'r').readlines()]
-
-#events = get_events_from_category('3285', '2024-02-01', '2024-02-01', api_token)
-#
-#pprint(events, width=128)
-#
-#for event_id in events:
-#
-#  material = get_material_from_event(event_id, api_token)
-#
-#  pprint(material, width=128)
-#
-#  exit()
-
-material = get_material_from_event('1355094', api_token)
-pprint(material, width=128)
-
-download_material(material, api_key, api_secret)
+if __name__ == '__main__':
+  main()
