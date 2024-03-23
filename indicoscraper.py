@@ -21,7 +21,7 @@ class BearerAuth(requests.auth.AuthBase):
 
 def str_parse(*args):
  
-  return '_'.join([re.sub('[^0-9a-zA-Z]+', '-', x) if x != None else 'NaN' for x in args])
+  return '_'.join([re.sub('[^0-9a-zA-Z]+', '-', x.replace('.pdf', '')) if x != None else 'NaN' for x in args])
 
 
 def build_indico_request(path, params, api_key=None, secret_key=None):
@@ -87,37 +87,42 @@ def get_material_from_event(event_id, api_token):
 
     for fol in con['folders']:
       for att in fol['attachments']:
-        material[str_parse(con['title'], fol['title'], att['title'])] = att['download_url']
+        if att['download_url'].endswith('.pdf'):
+          material[str_parse(con['title'], att['title'])] = {'evt': event_id, 'con': con['id'], 'mat': att['id']}
       
     for subcon in con['subContributions']:
 
       for mat in subcon['material']:
-        material[str_parse(con['title'], subcon['title'], matt['title'])] = mat['download_url']
+        if mat['download_url'].endswith('.pdf'):
+          material[str_parse(con['title'], subcon['title'], mat['title'])] = {'evt': event_id, 'con': con['id'], 'mat': mat['id']}
 
       for subfol in subcon['folders']:
         for subatt in subfol['attachments']:
-          material[str_parse(con['title'], subfol['title'], subatt['title'])] = subatt['download_url']
+          if subatt['download_url'].endswith('.pdf'):
+            material[str_parse(con['title'], subcon['title'], subatt['title'])] = {'evt': event_id, 'con': con['id'], 'mat': subatt['id']}
   
   return material
 
 
-def download_material(path, api_key, api_secret):
+def download_material(material, api_key, api_secret):
   
   domain = 'https://indico.cern.ch'
 
-  path = '/export' + path
-  
-  url = domain + build_indico_request(path, {}, api_key, api_secret)
+  for name in material:
+    
+    path = '/export/event/{}/session/0/contrib/{}/material/slides/{}.bin'.format(material[name]['evt'], material[name]['con'], material[name]['mat'])
 
-  print(url)
+    url = domain + build_indico_request(path, {}, api_key, api_secret)
 
-  response = requests.get(url)
+    print(url)
 
-  if response.status_code != 200:
-    print('WARNING: [download_material] status_code', response.status_code, '!= 200 for url', url)
-    return None
-  
-  open('indico_test.pdf', 'wb').write(response.content)
+    response = requests.get(url)
+
+    if response.status_code != 200:
+      print('WARNING: [download_material] status_code', response.status_code, '!= 200 for url', url)
+      return None
+    
+    open(name + '.pdf', 'wb').write(response.content)
 
 
 api_token, api_key, api_secret = [x.replace('\n', '') for x in open('indico_api.secret', 'r').readlines()]
@@ -137,27 +142,4 @@ api_token, api_key, api_secret = [x.replace('\n', '') for x in open('indico_api.
 material = get_material_from_event('1355094', api_token)
 pprint(material, width=128)
 
-#download_material('/event/1355094/contributions/5705789/subcontributions/454682/attachments/2791981/4869161/mjj_response_fits.pdf', api_key, api_secret)
-
-#category_id = '3285'
-#date_from = '2024-02-01'
-#date_to = '2024-02-01'
-#
-#domain = 'https://indico.cern.ch'
-#url = domain + '/export/categ/' + category_id +'.json?from=' + date_from + '&to=' + date_to
-#
-#path = '/export/categ/' + category_id +'.json'
-#params = {'from': date_from, 'to': date_to}
-#
-#url = domain + build_indico_request(path, params, api_key, api_secret)
-#
-##response = requests.get(url, auth=BearerAuth(api_token))
-#response = requests.get(url)
-#
-#if response.status_code != 200:
-#  print('WARNING: [TEST] status_code', response.status_code, ' != 200 for category_id', category_id)
-#  exit()
-#
-#data = json.loads(response.content.decode('utf-8'))
-#
-#pprint(data)
+download_material(material, api_key, api_secret)
