@@ -6,8 +6,6 @@ import hmac
 import time
 import json
 import re
-from urllib.parse import urlencode
-from pprint import pprint
 
 def main():
 
@@ -35,12 +33,14 @@ def build_indico_request(path, params, api_key=None, secret_key=None):
 
   items = sorted(items, key=lambda x: x[0].lower())
 
-  url = '%s?%s' % (path, urlencode(items))
+  url = path + '?' + '&'.join([x[0] + '=' + x[1] for x in items])
 
   signature = hmac.new(secret_key.encode('utf-8'), url.encode('utf-8'), hashlib.sha1).hexdigest()
   items.append(('signature', signature))
 
-  return '%s?%s' % (path, urlencode(items))
+  url = path + '?' + '&'.join([x[0] + '=' + x[1] for x in items])
+
+  return url
 
 
 def compose_name(*args):
