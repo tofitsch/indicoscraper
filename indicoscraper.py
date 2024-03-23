@@ -20,8 +20,10 @@ def main():
   for event in events:
   
     material = get_material_from_event(event, domain, api_key, api_secret)
+
+    for mat in material:
     
-    download_material(material, domain, api_key, api_secret)
+      download_material(mat, domain, api_key, api_secret)
 
 
 def build_indico_request(path, params, api_key=None, secret_key=None):
@@ -113,22 +115,20 @@ def get_material_from_event(event, domain, api_key, api_secret):
   return material
 
 
-def download_material(material, domain, api_key, api_secret):
-
-  for mat in material:
+def download_material(mat, domain, api_key, api_secret):
     
-    path = '/export/event/{}/session/0/contrib/{}/material/slides/{}.bin'.format(mat['evt'], mat['con'], mat['mat'])
+  path = '/export/event/{}/session/0/contrib/{}/material/slides/{}.bin'.format(mat['evt'], mat['con'], mat['mat'])
 
-    url = domain + build_indico_request(path, {}, api_key, api_secret)
+  url = domain + build_indico_request(path, {}, api_key, api_secret)
 
-    response = requests.get(url)
+  response = requests.get(url)
 
-    if response.status_code != 200:
-      print('WARNING: [download_material] status_code', response.status_code, '!= 200 for url', url)
-      return None
-    
-    print('downloading:', mat['name'])
-    open(mat['name'], 'wb').write(response.content)
+  if response.status_code != 200:
+    print('WARNING: [download_material] status_code', response.status_code, '!= 200 for url', url)
+    return None
+  
+  print('downloading:', mat['name'])
+  open(mat['name'], 'wb').write(response.content)
 
 
 if __name__ == '__main__':
