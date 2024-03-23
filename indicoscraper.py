@@ -33,12 +33,12 @@ def build_indico_request(path, params, api_key=None, secret_key=None):
 
   items = sorted(items, key=lambda x: x[0].lower())
 
-  url = path + '?' + '&'.join([x[0] + '=' + x[1] for x in items])
+  url = path + '?' + '&'.join(['='.join(x) for x in items])
 
   signature = hmac.new(secret_key.encode('utf-8'), url.encode('utf-8'), hashlib.sha1).hexdigest()
   items.append(('signature', signature))
 
-  url = path + '?' + '&'.join([x[0] + '=' + x[1] for x in items])
+  url = path + '?' + '&'.join(['='.join(x) for x in items])
 
   return url
 
