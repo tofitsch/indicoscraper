@@ -1,19 +1,34 @@
 # https://docs.getindico.io/en/stable/http-api/
+# example usage:
+# python indicoscraper.py indico.cern.ch/category/3285/ "Run 3.*Analysis Meeting" test_dir
 
+from pathlib import Path
 import requests
 import hashlib
 import hmac
 import time
 import json
+import sys
 import re
 
 def main():
 
-  domain = 'https://indico.cern.ch'
+  _, category, rex, out_dir = sys.argv
+
+  domain, _, category_id, _ = category.split('/')
+
+  domain  = 'https://' + domain
+
+  print('domain:', domain)
+  print('category_id:', category)
+  print('regex:', rex)
+  print('out_dir:', out_dir)
+
+  Path(out_dir).mkdir(parents=True, exist_ok=True)
   
   api_key, api_secret = [x.replace('\n', '') for x in open('api.secret', 'r').readlines()]
   
-  events = get_events_from_category('3285', '2024-02-01', '2024-02-01', domain, api_key, api_secret)
+  events = get_events_from_category(category_id, rex, '2024-02-01', '2024-02-01', domain, api_key, api_secret)
 
   for event in events:
   
@@ -21,7 +36,7 @@ def main():
 
     for mat in material:
     
-      download_material(mat, domain, api_key, api_secret)
+      download_material(mat, out_dir, domain, api_key, api_secret)
 
 
 def build_indico_request(path, params, api_key=None, secret_key=None):
@@ -48,7 +63,7 @@ def compose_name(*args):
   return '_'.join([re.sub('[^0-9a-zA-Z]+', '-', x.replace('.pdf', '')) if x != None else 'NaN' for x in args]) + '.pdf'
 
 
-def get_events_from_category(category_id, date_from, date_to, domain, api_key, api_secret):
+def get_events_from_category(category_id, rex, date_from, date_to, domain, api_key, api_secret):
   
   events = []
   
@@ -69,7 +84,8 @@ def get_events_from_category(category_id, date_from, date_to, domain, api_key, a
     return []
  
   for evt in data['results']:
-    events.append({'id': evt['id'], 'title': evt['title'], 'date': evt['startDate']['date']})
+    if re.match(rex, evt['title']):
+      events.append({'id': evt['id'], 'title': evt['title'], 'date': evt['startDate']['date']})
   
   return events
 
@@ -115,7 +131,7 @@ def get_material_from_event(event, domain, api_key, api_secret):
   return material
 
 
-def download_material(mat, domain, api_key, api_secret):
+def download_material(mat, out_dir, domain, api_key, api_secret):
     
   path = '/export/event/{}/session/0/contrib/{}/material/slides/{}.bin'.format(mat['evt'], mat['con'], mat['mat'])
 
@@ -128,7 +144,7 @@ def download_material(mat, domain, api_key, api_secret):
     return None
   
   print('downloading:', mat['name'])
-  open(mat['name'], 'wb').write(response.content)
+  open(out_dir + '/' + mat['name'], 'wb').write(response.content)
 
 
 if __name__ == '__main__':
