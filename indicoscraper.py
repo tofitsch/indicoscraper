@@ -1,7 +1,3 @@
-# https://docs.getindico.io/en/stable/http-api/
-# example usage:
-# python indicoscraper.py indico.cern.ch/category/3285/ "Run 3.*Analysis Meeting" test_dir
-
 from pathlib import Path
 import requests
 import hashlib
@@ -10,6 +6,7 @@ import time
 import json
 import sys
 import re
+from datetime import datetime,timedelta
 
 def main():
 
@@ -27,16 +24,27 @@ def main():
   Path(out_dir).mkdir(parents=True, exist_ok=True)
   
   api_key, api_secret = [x.replace('\n', '') for x in open('api.secret', 'r').readlines()]
-  
-  events = get_events_from_category(category_id, rex, '2024-02-01', '2024-02-01', domain, api_key, api_secret)
 
-  for event in events:
-  
-    material = get_material_from_event(event, domain, api_key, api_secret)
+  week = 0
 
-    for mat in material:
+  while True:
     
-      download_material(mat, out_dir, domain, api_key, api_secret)
+    print('scraping week of: today -', week, 'weeks')
+
+    from_time = datetime.now() - timedelta(days=7 * (week + 1))
+    to_time = datetime.now() - timedelta(days=7 * week)
+  
+    events = get_events_from_category(category_id, rex, from_time.strftime('%Y-%m-%d'), to_time.strftime('%Y-%m-%d'), domain, api_key, api_secret)
+
+    for event in events:
+    
+      material = get_material_from_event(event, domain, api_key, api_secret)
+
+      for mat in material:
+      
+        download_material(mat, out_dir, domain, api_key, api_secret)
+    
+    week += 1
 
 
 def build_indico_request(path, params, api_key=None, secret_key=None):
@@ -114,18 +122,18 @@ def get_material_from_event(event, domain, api_key, api_secret):
 
     for fol in con['folders']:
       for att in fol['attachments']:
-        if att['download_url'].endswith('.pdf'):
+        if 'download_url' in att and att['download_url'].endswith('.pdf'):
           material.append({'name': compose_name(event['date'], event['title'], con['title'], att['title']), 'evt': event['id'], 'con': con['id'], 'mat': att['id']})
       
     for subcon in con['subContributions']:
 
       for mat in subcon['material']:
-        if mat['download_url'].endswith('.pdf'):
+        if 'download_url' in mat and mat['download_url'].endswith('.pdf'):
           material.append({'name': compose_name(event['date'], event['title'], con['title'], subcon['title'], mat['title']), 'evt': event['id'], 'con': con['id'], 'mat': mat['id']})
 
       for subfol in subcon['folders']:
         for subatt in subfol['attachments']:
-          if subatt['download_url'].endswith('.pdf'):
+          if 'download_url' in subatt and subatt['download_url'].endswith('.pdf'):
             material.append({'name': compose_name(event['date'], event['title'], con['title'], subcon['title'], subatt['title']), 'evt': event['id'], 'con': con['id'], 'mat': subatt['id']})
   
   return material
@@ -143,7 +151,7 @@ def download_material(mat, out_dir, domain, api_key, api_secret):
     print('WARNING: [download_material] status_code', response.status_code, '!= 200 for url', url)
     return None
   
-  print('downloading:', mat['name'])
+  print('  downloading:', mat['name'])
   open(out_dir + '/' + mat['name'], 'wb').write(response.content)
 
 
