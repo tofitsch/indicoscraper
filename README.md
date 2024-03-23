@@ -1,5 +1,5 @@
 ## Intro
-Script to download all slides (pdf) from indico using the official (https://docs.getindico.io/en/stable/http-api/)[API].
+Script to download all slides (pdf) from indico using the official [API](https://docs.getindico.io/en/stable/http-api/).
 
 Specify the url containing the category id, a regex matching the event title of all events that should be fetched and the name for an output dir for the slides to be downloaded into.
 
