@@ -16,7 +16,8 @@ def main():
 
   domain, _, category_id, _ = category.split('/')
 
-  domain  = 'https://' + domain
+  if not domain.startswith('http'):
+    domain = 'https://' + domain
 
   print('domain:', domain)
   print('category_id:', category)
