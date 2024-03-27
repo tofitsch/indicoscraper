@@ -127,18 +127,18 @@ def get_material_from_event(event, domain, api_key, api_secret):
     for fol in con['folders']:
       for att in fol['attachments']:
         if 'download_url' in att and att['download_url'].endswith('.pdf'):
-          material.append({'name': compose_name(event['date'], event['title'], con['title'], att['title']), 'evt': event['id'], 'con': con['id'], 'mat': att['id'], 'url': con['url']})
+          material.append({'name': compose_name(event['date'], con['title'], att['title']), 'evt': event['id'], 'con': con['id'], 'mat': att['id'], 'url': con['url']})
       
     for subcon in con['subContributions']:
 
       for mat in subcon['material']:
         if 'download_url' in mat and mat['download_url'].endswith('.pdf'):
-          material.append({'name': compose_name(event['date'], event['title'], con['title'], subcon['title'], mat['title']), 'evt': event['id'], 'con': con['id'], 'mat': mat['id'], 'url': con['url']})
+          material.append({'name': compose_name(event['date'], con['title'], subcon['title'], mat['title']), 'evt': event['id'], 'con': con['id'], 'mat': mat['id'], 'url': con['url']})
 
       for subfol in subcon['folders']:
         for subatt in subfol['attachments']:
           if 'download_url' in subatt and subatt['download_url'].endswith('.pdf'):
-            material.append({'name': compose_name(event['date'], event['title'], con['title'], subcon['title'], subatt['title']), 'evt': event['id'], 'con': con['id'], 'mat': subatt['id'], 'url': con['url']})
+            material.append({'name': compose_name(event['date'], con['title'], subcon['title'], subatt['title']), 'evt': event['id'], 'con': con['id'], 'mat': subatt['id'], 'url': con['url']})
   
   return material
 
