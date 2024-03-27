@@ -14,13 +14,14 @@ def main():
 
   _, category, rex, out_dir = sys.argv
 
+  category = category.replace('https://', '')
+
   domain, _, category_id, _ = category.split('/')
 
-  if not domain.startswith('http'):
-    domain = 'https://' + domain
+  domain = 'https://' + domain
 
   print('domain:', domain)
-  print('category_id:', category)
+  print('category_id:', category_id)
   print('regex:', rex)
   print('out_dir:', out_dir)
 
