@@ -4,8 +4,10 @@ import hashlib
 import hmac
 import time
 import json
+import fitz
 import sys
 import re
+import os
 from datetime import datetime,timedelta
 
 def main():
@@ -123,18 +125,18 @@ def get_material_from_event(event, domain, api_key, api_secret):
     for fol in con['folders']:
       for att in fol['attachments']:
         if 'download_url' in att and att['download_url'].endswith('.pdf'):
-          material.append({'name': compose_name(event['date'], event['title'], con['title'], att['title']), 'evt': event['id'], 'con': con['id'], 'mat': att['id']})
+          material.append({'name': compose_name(event['date'], event['title'], con['title'], att['title']), 'evt': event['id'], 'con': con['id'], 'mat': att['id'], 'url': con['url']})
       
     for subcon in con['subContributions']:
 
       for mat in subcon['material']:
         if 'download_url' in mat and mat['download_url'].endswith('.pdf'):
-          material.append({'name': compose_name(event['date'], event['title'], con['title'], subcon['title'], mat['title']), 'evt': event['id'], 'con': con['id'], 'mat': mat['id']})
+          material.append({'name': compose_name(event['date'], event['title'], con['title'], subcon['title'], mat['title']), 'evt': event['id'], 'con': con['id'], 'mat': mat['id'], 'url': con['url']})
 
       for subfol in subcon['folders']:
         for subatt in subfol['attachments']:
           if 'download_url' in subatt and subatt['download_url'].endswith('.pdf'):
-            material.append({'name': compose_name(event['date'], event['title'], con['title'], subcon['title'], subatt['title']), 'evt': event['id'], 'con': con['id'], 'mat': subatt['id']})
+            material.append({'name': compose_name(event['date'], event['title'], con['title'], subcon['title'], subatt['title']), 'evt': event['id'], 'con': con['id'], 'mat': subatt['id'], 'url': con['url']})
   
   return material
 
@@ -151,9 +153,20 @@ def download_material(mat, out_dir, domain, api_key, api_secret):
     print('WARNING: [download_material] status_code', response.status_code, '!= 200 for url', url)
     return None
   
-  print('  downloading:', mat['name'])
-  open(out_dir + '/' + mat['name'], 'wb').write(response.content)
+  out_path = out_dir + '/' + mat['name']
+  
+  print('  downloading:', out_path)
 
+  open('tmp.pdf', 'wb').write(response.content)
+
+  doc = fitz.open('tmp.pdf')
+
+  for page in doc:
+    page.insert_link({'kind': 2, 'xref': 0, 'from': fitz.Rect(0, 0, 10, 10), 'uri': mat['url']})
+
+  doc.save(out_path)
+
+  os.remove('tmp.pdf')
 
 if __name__ == '__main__':
   main()
