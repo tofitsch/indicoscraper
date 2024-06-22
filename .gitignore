@@ -1,3 +1,4 @@
 *.secret
 *.pdf
 *.swp
+*.url
