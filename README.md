@@ -20,6 +20,8 @@ Example usage:
 ```
 python indicoscraper.py https://indico.cern.ch/category/492/ "Jet Definitions.*MC.*" jetdef
 python indicoscraper.py https://indico.cern.ch/category/492/ "Jet/Etmiss Main Meeting" jetetmissmain
+python indicoscraper.py https://indico.cern.ch/category/3285/ "Trigger Level Analysis Meeting" tlarun2
+python indicoscraper.py https://indico.cern.ch/category/3285/ "Run 3 TLA.*ISR.*DiJet Analysis Meeting" tlarun3
 ```
 
 Since indico does not save who uploaded the material in a contribution and some contributions (e.g. roundtables) can have a long list of speakers the speaker name that goes into the file name is determined like so:

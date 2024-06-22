@@ -135,19 +135,19 @@ def get_material_from_event(event, domain, api_key, api_secret):
     
     for fol in con['folders']:
       for att in fol['attachments']:
-        if 'download_url' in att and att['download_url'].endswith('.pdf'):
-          material.append({'name': compose_name(event['date'], con['title'], att['title']), 'evt': event['id'], 'con': con['id'], 'mat': att['id'], 'url': con['url'], 'speakers': speakers})
+        if 'download_url' in att:
+          material.append({'name': compose_name(event['date'], con['title'], att['title']), 'evt': event['id'], 'con': con['id'], 'mat': att['id'], 'url': con['url'], 'speakers': speakers, 'is_pdf': att['download_url'].endswith('.pdf')})
       
     for subcon in con['subContributions']:
       
       for mat in subcon['material']:
-        if 'download_url' in mat and mat['download_url'].endswith('.pdf'):
-          material.append({'name': compose_name(event['date'], con['title'], subcon['title'], mat['title']), 'evt': event['id'], 'con': con['id'], 'mat': mat['id'], 'url': con['url'], 'speakers': speakers})
+        if 'download_url' in mat:
+          material.append({'name': compose_name(event['date'], con['title'], subcon['title'], mat['title']), 'evt': event['id'], 'con': con['id'], 'mat': mat['id'], 'url': con['url'], 'speakers': speakers, 'is_pdf': mat['download_url'].endswith('.pdf')})
 
       for subfol in subcon['folders']:
         for subatt in subfol['attachments']:
-          if 'download_url' in subatt and subatt['download_url'].endswith('.pdf'):
-            material.append({'name': compose_name(event['date'], con['title'], subcon['title'], subatt['title']), 'evt': event['id'], 'con': con['id'], 'mat': subatt['id'], 'url': con['url'], 'speakers': speakers})
+          if 'download_url' in subatt:
+            material.append({'name': compose_name(event['date'], con['title'], subcon['title'], subatt['title']), 'evt': event['id'], 'con': con['id'], 'mat': subatt['id'], 'url': con['url'], 'speakers': speakers, 'is_pdf': subatt['download_url'].endswith('.pdf')})
   
   return material
 
@@ -158,30 +158,42 @@ def download_material(mat, out_dir, domain, api_key, api_secret):
 
   url = domain + build_indico_request(path, {}, api_key, api_secret)
 
-  response = requests.get(url)
+  if mat['is_pdf']:
 
-  if response.status_code != 200:
-    print('WARNING: [download_material] status_code', response.status_code, '!= 200 for url', url)
-    return None
+    response = requests.get(url)
 
-  open('tmp.pdf', 'wb').write(response.content)
+    if response.status_code != 200:
+      print('WARNING: [download_material] status_code', response.status_code, '!= 200 for url', url)
+      return None
 
-  doc = fitz.open('tmp.pdf')
+    open('tmp.pdf', 'wb').write(response.content)
 
-  text = doc[0].get_text()
+    doc = fitz.open('tmp.pdf')
 
-  names = '_'.join([word for word in text.split() if word in mat['speakers']])
-  
-  out_path = out_dir + '/' + mat['name'].replace('_', '_' + names + '_', 1)
-  
-  print('  downloading:', out_path)
+    text = doc[0].get_text()
 
-  for page in doc:
-    page.insert_link({'kind': 2, 'xref': 0, 'from': fitz.Rect(0, 0, 10, 10), 'uri': mat['url']})
+    names = '_'.join([word for word in text.split() if word in mat['speakers']])
+    
+    out_path = out_dir + '/' + mat['name'].replace('_', '_' + names + '_', 1)
+    
+    print('  downloading:', out_path)
 
-  doc.save(out_path)
+    for page in doc:
+      page.insert_link({'kind': 2, 'xref': 0, 'from': fitz.Rect(0, 0, 10, 10), 'uri': mat['url']})
 
-  os.remove('tmp.pdf')
+    doc.save(out_path)
+
+    os.remove('tmp.pdf')
+
+  else: # not a pdf
+
+    out_path = out_dir + '/' + mat['name'].replace('.pdf', '') + '.url'
+
+    print('  creating link:', out_path)
+
+    f = open(out_path, 'w')
+    f.write(mat['url'])
+    f.close()
 
 if __name__ == '__main__':
   main()
