@@ -19,6 +19,7 @@ python indicoscraper.py [url] [regex] [out_dir]
 Example usage:
 ```
 python indicoscraper.py https://indico.cern.ch/category/492/ "Jet Definitions.*MC.*" jetdef
+python indicoscraper.py https://indico.cern.ch/category/492/ "Jet/Etmiss Main Meeting" jetetmissmain
 ```
 
 Since indico does not save who uploaded the material in a contribution and some contributions (e.g. roundtables) can have a long list of speakers the speaker name that goes into the file name is determined like so:
@@ -34,12 +35,12 @@ Specify the RSS feed URL as well as an output dir.
 
 General usage:
 ```
-python cdsscraper.py [url] [out_dir]
+python cdsscraper.py [url] [regex] [out_dir]
 ```
 
 Example usage:
 ```
-python cdsscraper.py "https://cds.cern.ch/rss?cc=ATLAS+Papers" papers
-python cdsscraper.py "https://cds.cern.ch/rss?cc=ATLAS+Conference+Notes" confnotes
-python cdsscraper.py "https://cds.cern.ch/rss?cc=ATLAS+PUB+Notes" pubnotes
+python cdsscraper.py "https://cds.cern.ch/rss?cc=ATLAS+Papers" ".*PAPER.*pdf" papers
+python cdsscraper.py "https://cds.cern.ch/rss?cc=ATLAS+Conference+Notes" ".*CONF.*pdf" confnotes
+python cdsscraper.py "https://cds.cern.ch/rss?cc=ATLAS+PUB+Notes" ".*PUB.*pdf" pubnotes
 ```
