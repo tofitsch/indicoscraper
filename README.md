@@ -21,6 +21,10 @@ Example usage:
 python indicoscraper.py https://indico.cern.ch/category/492/ "Jet Definitions.*MC.*" jetdef
 ```
 
+Since indico does not save who uploaded the material in a contribution and some contributions (e.g. roundtables) can have a long list of speakers the speaker name that goes into the file name is determined like so:
+* The first page of the pdf (usually title slide) is converted to text
+* If one of the words matches any of the first or last names of one of the contribution speakers on indico it is considered to be the name
+
 # CDS
 ## Setup
 So far none. Non-public files that require access are not supported yet.
