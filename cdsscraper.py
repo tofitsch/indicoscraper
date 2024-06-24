@@ -55,8 +55,6 @@ def read_rss(domain, suffix, out_dir, rex):
 
         for media_content in media_list:
           
-          print('media:', media_content.text)
-
           media_url = media_content.attrib.get('url')
 
           if media_url.endswith('.pdf'):
