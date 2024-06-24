@@ -28,6 +28,8 @@ Since indico does not save who uploaded the material in a contribution and some 
 * The first page of the pdf (usually title slide) is converted to text
 * If one of the words matches any of the first or last names of one of the contribution speakers on indico it is considered to be the name
 
+Once a file would be downloaded that already exists in the `out_dir` the script exits. This allows to quickly updating just the new contributions in a particular category / meeting.
+
 # CDS
 ## Setup
 So far none. Non-public files that require access are not supported yet.
@@ -46,3 +48,5 @@ python cdsscraper.py "https://cds.cern.ch/rss?cc=ATLAS+Papers" ".*PAPER.*pdf" pa
 python cdsscraper.py "https://cds.cern.ch/rss?cc=ATLAS+Conference+Notes" ".*CONF.*pdf" confnotes
 python cdsscraper.py "https://cds.cern.ch/rss?cc=ATLAS+PUB+Notes" ".*PUB.*pdf" pubnotes
 ```
+
+Once a file would be downloaded that already exists it is skipped. Note that this is different from the behaviour of `indicoscraper` which exits under that condition.

@@ -175,6 +175,12 @@ def download_material(mat, out_dir, domain, api_key, api_secret):
     names = '_'.join([word for word in text.split() if word in mat['speakers']])
     
     out_path = out_dir + '/' + mat['name'].replace('_', '_' + names + '_', 1)
+
+    if os.path.exists(out_path):
+  
+      print('reached file that already exists. exiting')
+  
+      exit()
     
     print('  downloading:', out_path)
 
@@ -188,6 +194,12 @@ def download_material(mat, out_dir, domain, api_key, api_secret):
   else: # not a pdf
 
     out_path = out_dir + '/' + mat['name'].replace('.pdf', '') + '.url'
+
+    if os.path.exists(out_path):
+  
+      print('reached file that already exists. exiting')
+  
+      exit() 
 
     print('  creating link:', out_path)
 

@@ -54,6 +54,8 @@ def read_rss(domain, suffix, out_dir, rex):
         media_list = item.findall('.//media:content', {'media': 'http://search.yahoo.com/mrss/'})
 
         for media_content in media_list:
+          
+          print('media:', media_content.text)
 
           media_url = media_content.attrib.get('url')
 
@@ -72,6 +74,13 @@ def read_rss(domain, suffix, out_dir, rex):
 def download_material(media_url, out_dir, rex):
   
   out_path = out_dir + '/cds' + media_url.split('/')[-3] + '_' + media_url.split('/')[-1]
+
+  if os.path.exists(out_path):
+
+    print('file exists. skipping download')
+
+    return
+
 
   if not re.match(rex, out_path):
     return 
